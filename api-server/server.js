@@ -157,13 +157,16 @@ function buildUpdateFilter(req) {
   let idx = 1
 
   for (const [col, raw] of Object.entries(req.query)) {
-    const { op, value } = parseFilterValue(raw)
-    if (op === 'IN') {
-      const ph = value.map(v => { values.push(v); return `$${idx++}` }).join(', ')
-      parts.push(`${safeIdent(col)} IN (${ph})`)
-    } else {
-      values.push(value)
-      parts.push(`${safeIdent(col)} ${op} $${idx++}`)
+    const values_raw = Array.isArray(raw) ? raw : [raw]
+    for (const val of values_raw) {
+      const { op, value } = parseFilterValue(val)
+      if (op === 'IN') {
+        const ph = value.map(v => { values.push(v); return `$${idx++}` }).join(', ')
+        parts.push(`${safeIdent(col)} IN (${ph})`)
+      } else {
+        values.push(value)
+        parts.push(`${safeIdent(col)} ${op} $${idx++}`)
+      }
     }
   }
 

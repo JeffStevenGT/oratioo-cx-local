@@ -1,134 +1,114 @@
-# Oratioo CX — Local (PC España)
+# Oratioo CX — Local
 
-Stack: PostgreSQL 17 + PostgREST + Vite React + Python Bot
+Stack: PostgreSQL VPS + Node.js API + Vite React + Python Bot
 
-## Requisitos previos
+## Estructura
 
-- PostgreSQL 17.10 (contraseña: `Pangea.2026`)
-- Python 3.12+ (con pip)
-- Node.js 20+
-- PostgREST (descargar de https://postgrest.org)
+```
+oratioo-cx-local/
+├── api-server/              # API REST (reemplaza PostgREST)
+│   ├── server.js            # Express + pg → VPS PostgreSQL
+│   └── package.json
+├── bot/                     # Bot de extracción Pangea Orange
+│   ├── coordinator.py       # Orquestador multi-worker
+│   ├── worker.py            # Worker individual
+│   ├── login.py             # Automatización login Pangea
+│   ├── extraction.py        # Extracción de datos
+│   ├── browser_setup.py     # Config navegador + proxy
+│   ├── pg_client.py         # Cliente PostgreSQL directo
+│   └── requirements.txt
+├── web/                     # Frontend React + Vite
+│   ├── src/
+│   │   ├── api.js           # Cliente API (fetch)
+│   │   ├── App.jsx
+│   │   ├── pages/           # Login, Dashboard, Clientes, Documentos
+│   │   └── components/      # Sidebar, FilaExpandible, StatCard, etc.
+│   └── package.json
+├── sql/
+│   └── 001_schema.sql       # Schema para VPS (4 tablas)
+├── .env.example
+├── .gitignore
+└── README.md
+```
 
----
+## Requisitos
 
-## Setup paso a paso
+- **PostgreSQL** en VPS (`srv.oratioo.com`) — ya configurado
+- **Node.js 20+** (para API + frontend)
+- **Python 3.12+** (para el bot)
+- **Playwright** (navegador para el bot)
 
-### 1. Clonar el repo
+## Setup
+
+### 1. Clonar
 
 ```powershell
-cd C:\Users\user\Documents
 git clone https://github.com/JeffStevenGT/oratioo-cx-local.git
 cd oratioo-cx-local
 ```
 
-### 2. Copiar el dump de datos
-
-Copiar `oratioo_data.dump` (13MB) a la raíz del proyecto:
-```
-C:\Users\user\Documents\oratioo-cx-local\oratioo_data.dump
-```
-
-### 3. Crear base de datos
-
-```powershell
-$env:PGPASSWORD = "Pangea.2026"
-& "C:\Program Files\PostgreSQL\17\bin\createdb.exe" -U postgres oratioo_cx
-```
-
-### 4. Crear tablas (schema)
-
-```powershell
-& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -d oratioo_cx -f sql\001_schema.sql
-```
-
-### 5. Importar datos
-
-```powershell
-& "C:\Program Files\PostgreSQL\17\bin\pg_restore.exe" -U postgres -d oratioo_cx --data-only --no-owner --no-privileges oratioo_data.dump
-```
-
-### 6. Configurar .env
+### 2. Variables de entorno
 
 ```powershell
 copy .env.example .env
+# Editar .env con credenciales reales de Pangea y VPS
 ```
 
-Editar `.env` y ajustar:
-```
-PG_HOST=localhost
-PG_PORT=5432
-PG_USER=postgres
-PG_PASSWORD=Pangea.2026
-PG_DATABASE=oratioo_cx
-PANGEA_USER=TU_USUARIO_PANGEA
-PANGEA_PASSWORD=TU_CLAVE_PANGEA
+### 3. API Server
+
+```powershell
+cd api-server
+npm install
+node server.js
+# Corre en http://localhost:3001
 ```
 
-### 7. Entorno virtual Python + bot
+### 4. Web (Frontend)
+
+```powershell
+cd web
+npm install
+npm run dev
+# Corre en http://localhost:5173
+```
+
+### 5. Bot (Python)
 
 ```powershell
 cd bot
 python -m venv venv
-.\venv\Scripts\activate
+venv\Scripts\activate
 pip install -r requirements.txt
 python -m playwright install chromium
-```
 
-### 8. Frontend
-
-```powershell
-cd ..\web
-npm install
-```
-
-### 9. PostgREST
-
-Descargar `postgrest.exe` de https://postgrest.org y soltarlo en la carpeta `postgrest\`.
-
----
-
-## Arrancar todo
-
-Abrir **3 terminales** (con `$env:PGPASSWORD = "Pangea.2026"` si lo necesitan):
-
-**Terminal 1 — PostgREST:**
-```powershell
-cd C:\Users\user\Documents\oratioo-cx-local
-.\postgrest\postgrest.exe postgrest\postgrest.conf
-```
-
-**Terminal 2 — Frontend:**
-```powershell
-cd C:\Users\user\Documents\oratioo-cx-local\web
-npm run dev
-```
-
-**Terminal 3 — Bot:**
-```powershell
-cd C:\Users\user\Documents\oratioo-cx-local\bot
-.\venv\Scripts\activate
+# Ejecutar
 python coordinator.py --workers 4
 ```
-
----
-
-## Acceso
-
-- **Frontend:** http://localhost:5173
-- **PostgREST API:** http://localhost:3001
-- **Login:** `admin@oratioo.com` / `admin123`
 
 ## Tablas
 
 | Tabla | Contenido |
 |-------|-----------|
-| `lineas` | 137,718 registros (122k completados, 15k pendientes) |
-| `documentos` | Registro de archivos subidos |
-| `perfiles` | Perfiles de usuario |
+| `lineas` | 137,718 registros de clientes (atributos_dinamicos JSONB) |
 | `usuarios` | Login y roles |
+| `perfiles` | Datos de perfil de usuario |
+| `documentos` | Registro de archivos Excel subidos |
 
-## Notas
+## Login
 
-- La contraseña de PostgreSQL para todos los comandos es `Pangea.2026`
-- Si `createdb` o `psql` no están en PATH, usar rutas completas: `C:\Program Files\PostgreSQL\17\bin\`
-- Los 15k pendientes los procesa el bot automáticamente al arrancar
+- **URL:** `http://localhost:5173`
+- **Usuario:** `admin@oratioo.com` / `admin123`
+
+## Flujo de datos
+
+1. **Web** → API (port 3001) → PostgreSQL VPS
+2. **Bot** → PostgreSQL VPS (directo vía pg_client.py)
+3. Bot extrae datos de Pangea Orange → guarda en `lineas` del VPS
+4. **Web** → Dashboard y Clientes muestran resultados filtrados server-side
+
+## Filtros JSONB
+
+La API usa alias `ad_*` para filtrar campos dentro de `atributos_dinamicos`:
+- `ad_fecha_procesado` → `atributos_dinamicos->>'fecha_procesado'`
+- `ad_estado` → `atributos_dinamicos->>'estado'`
+- etc.

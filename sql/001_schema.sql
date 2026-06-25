@@ -1,8 +1,16 @@
 -- ===========================================================================
--- Oratioo CX Local — Schema PostgreSQL
--- Requiere PostgreSQL 13+ (testeado en PG 17.10)
--- 4 tablas: lineas, usuarios, perfiles, documentos
+-- Oratioo CX — Schema para VPS (sin creación de roles)
+-- Los roles web_anon y authenticator deben ser creados por el DBA
 -- ===========================================================================
+
+-- ⚠️ El DBA debe ejecutar esto primero (como superuser):
+--
+-- CREATE ROLE web_anon NOLOGIN;
+-- CREATE ROLE authenticator NOINHERIT LOGIN PASSWORD 'oratioo_authenticator_2024';
+-- GRANT USAGE ON SCHEMA public TO web_anon;
+-- GRANT SELECT ON lineas, usuarios, perfiles, documentos TO web_anon;
+-- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO authenticator;
+-- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticator;
 
 BEGIN;
 
@@ -10,21 +18,6 @@ BEGIN;
 -- EXTENSIONES
 -- ===========================================================================
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
-
--- ===========================================================================
--- ROLES para PostgREST
--- ===========================================================================
-
--- Rol anónimo: solo lectura a ciertas tablas
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'web_anon') THEN
-        CREATE ROLE web_anon NOLOGIN;
-    END IF;
-    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticator') THEN
-        CREATE ROLE authenticator NOINHERIT LOGIN PASSWORD 'oratioo_authenticator_2024';
-    END IF;
-END $$;
 
 -- ===========================================================================
 -- TABLAS
@@ -62,7 +55,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
 -- 3. perfiles — IDs UUID de Supabase
 CREATE TABLE IF NOT EXISTS perfiles (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id         TEXT,           -- UUID de Supabase (sin FK local)
+    user_id         TEXT,
     username        VARCHAR(255),
     nombre          VARCHAR(255),
     rol             VARCHAR(50) DEFAULT 'asesor',
@@ -124,21 +117,6 @@ DROP TRIGGER IF EXISTS trg_lineas_updated_at ON lineas;
 CREATE TRIGGER trg_lineas_updated_at
     BEFORE UPDATE ON lineas
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- ===========================================================================
--- PERMISOS PostgREST
--- ===========================================================================
-
--- web_anon: solo lectura
-GRANT USAGE ON SCHEMA public TO web_anon;
-GRANT SELECT ON lineas TO web_anon;
-GRANT SELECT ON usuarios TO web_anon;
-GRANT SELECT ON perfiles TO web_anon;
-GRANT SELECT ON documentos TO web_anon;
-
--- authenticator: full access
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO authenticator;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticator;
 
 -- ===========================================================================
 -- SEED: Usuario admin por defecto (bcrypt hash de "admin123")

@@ -2,6 +2,7 @@
 node_modules/
 bot/venv/
 bot/__pycache__/
+api-server/node_modules/
 
 # Build output
 web/dist/
@@ -19,6 +20,9 @@ bot/logs/
 
 # Resultados
 bot/resultados_local.json
+
+# PostgREST (ya no se usa — reemplazado por api-server)
+postgrest/
 
 # CSVs de Supabase (se copian aparte — son muy pesados)
 *.csv
