@@ -57,14 +57,14 @@ export default function Clientes() {
     setLoading(true)
     try {
       let allData = []
-      const PAGE = 50
+      const PAGE = 200
       let offset = 0
       let hasMore = true
 
       while (hasMore) {
         const query = api
           .from(TABLA_CLIENTES)
-          .select('*')
+          .select('id,dni,nombre,linea,paquete,atributos_dinamicos,created_at')
           .order('id', { ascending: true })
           .limit(PAGE)
 
