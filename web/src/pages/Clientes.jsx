@@ -62,28 +62,20 @@ export default function Clientes() {
       let hasMore = true
 
       while (hasMore) {
-        const { data } = await api
+        const query = api
           .from(TABLA_CLIENTES)
           .select('*')
           .order('id', { ascending: true })
           .limit(PAGE)
-          .offset(offset)
+
+        // Filtros de fecha server-side (la API ya soporta JSONB)
+        if (appliedFrom) query.gte('atributos_dinamicos->>fecha_procesado', appliedFrom)
+        if (appliedTo) query.lte('atributos_dinamicos->>fecha_procesado', appliedTo)
+
+        const { data } = await query.offset(offset)
 
         if (data && data.length > 0) {
-          // Filtrar por fecha en cliente (porque PostgREST no puede filtrar JSONB con rango fácilmente)
-          let filtered = data
-          if (appliedFrom || appliedTo) {
-            filtered = data.filter(c => {
-              let ad = c.atributos_dinamicos || {}
-              if (typeof ad === 'string') { try { ad = JSON.parse(ad) } catch { ad = {} } }
-              const fp = ad.fecha_procesado
-              if (!fp) return false
-              if (appliedFrom && fp < appliedFrom) return false
-              if (appliedTo && fp > appliedTo) return false
-              return true
-            })
-          }
-          allData = [...allData, ...filtered]
+          allData = [...allData, ...data]
           offset += PAGE
           if (data.length < PAGE) hasMore = false
         } else {
@@ -91,9 +83,6 @@ export default function Clientes() {
         }
       }
 
-      // Eliminar duplicados
-      const seen = new Set()
-      allData = allData.filter(r => seen.has(r.id) ? false : (seen.add(r.id), true))
       setClientes(allData)
     } catch (err) {
       console.error('Error fetching clientes:', err)
