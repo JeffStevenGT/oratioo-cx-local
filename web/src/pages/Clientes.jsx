@@ -57,7 +57,7 @@ export default function Clientes() {
     setLoading(true)
     try {
       let allData = []
-      const PAGE = 500
+      const PAGE = 100
       let offset = 0
       let hasMore = true
 
@@ -84,7 +84,6 @@ export default function Clientes() {
       }
 
       setClientes(allData)
-      console.log('fetchClientes DONE — total rows:', allData.length, 'unique DNIs:', new Set(allData.map(r => r.dni)).size, 'sample estados:', [...new Set(allData.map(r => (r.atributos_dinamicos||{}).estado || (typeof r.atributos_dinamicos==='string'?JSON.parse(r.atributos_dinamicos).estado:'?')))].slice(0, 5))
     } catch (err) {
       console.error('Error fetching clientes:', err)
     } finally {
@@ -154,7 +153,6 @@ export default function Clientes() {
     }
 
     let result = Object.values(grupos)
-    console.log('useMemo — grupos count:', result.length, 'clientes count:', clientes.length)
 
     // Actualizar atributos con datos agregados
     for (const g of result) {

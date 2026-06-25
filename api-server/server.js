@@ -181,12 +181,7 @@ function buildUpdateFilter(req) {
 app.get('/:table', async (req, res) => {
   try {
     const { sql, countSql, params } = buildQuery(req)
-    if (req.query.ad_fecha_procesado) {
-      console.log('SQL:', sql, '| PARAMS:', params)
-      console.log('RAW req.query:', JSON.stringify(req.query))
-    }
     const result = await pool.query(sql, params)
-    if (req.query.ad_fecha_procesado) console.log('ROWS returned:', result.rows.length)
 
     // Count if requested
     if (req.headers.prefer?.includes('count=exact')) {
