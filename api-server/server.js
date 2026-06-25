@@ -114,10 +114,20 @@ function buildQuery(req) {
     orderClause = ` ORDER BY ${safeIdent(col)} ${dir === 'DESC' ? 'DESC' : 'ASC'} NULLS LAST`
   }
 
-  // Limit / Offset
+  // Limit / Offset (from query params OR Range header)
   let limitClause = ''
-  const limit = parseInt(req.query.limit)
-  const offset = parseInt(req.query.offset)
+  let limit = parseInt(req.query.limit)
+  let offset = parseInt(req.query.offset)
+  
+  // Support HTTP Range header: "0-999" → LIMIT 1000 OFFSET 0
+  if (!limit && req.headers.range) {
+    const m = req.headers.range.match(/^(\d+)-(\d+)$/)
+    if (m) {
+      offset = parseInt(m[1])
+      limit = parseInt(m[2]) - offset + 1
+    }
+  }
+  
   if (limit && limit > 0) {
     limitClause = ` LIMIT ${limit}`
     if (offset && offset > 0) limitClause += ` OFFSET ${offset}`

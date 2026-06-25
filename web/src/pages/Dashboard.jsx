@@ -56,39 +56,29 @@ export default function Dashboard() {
     try {
       let todosLosDatos = [];
       const PAGE_SIZE = 1000;
-      let desde = 0;
+      let offset = 0;
       let hayMas = true;
       const fechaCorte = getDateFilter(p);
 
       while (hayMas) {
-        const { data } = await api
+        const q = api
           .from(TABLA_CLIENTES)
           .select("dni, atributos_dinamicos, created_at")
           .order("created_at", { ascending: false })
-          .range(desde, desde + PAGE_SIZE - 1);
+          .limit(PAGE_SIZE);
+
+        // Filtros server-side via alias ad_ (API los traduce a atributos_dinamicos->>)
+        q.in('ad_estado', ['completado', 'no_cliente']);
+        if (fechaCorte) {
+          const fStr = `${fechaCorte.getFullYear()}-${String(fechaCorte.getMonth() + 1).padStart(2, "0")}-${String(fechaCorte.getDate()).padStart(2, "0")}`;
+          q.gte('ad_fecha_procesado', fStr);
+        }
+
+        const { data } = await q.offset(offset);
 
         if (data && data.length > 0) {
-          // Filtrar en cliente: estado completado o no_cliente
-          const filtrados = data.filter((c) => {
-            let ad = c.atributos_dinamicos || {};
-            if (typeof ad === "string") { try { ad = JSON.parse(ad); } catch { ad = {}; } }
-            return ad.estado === "completado" || ad.estado === "no_cliente";
-          });
-
-          // Filtrar por fecha
-          const conFecha = fechaCorte
-            ? filtrados.filter((c) => {
-                let ad = c.atributos_dinamicos || {};
-                if (typeof ad === "string") { try { ad = JSON.parse(ad); } catch { ad = {}; } }
-                const fp = ad.fecha_procesado;
-                if (!fp) return false;
-                const fStr = `${fechaCorte.getFullYear()}-${String(fechaCorte.getMonth() + 1).padStart(2, "0")}-${String(fechaCorte.getDate()).padStart(2, "0")}`;
-                return fp >= fStr;
-              })
-            : filtrados;
-
-          todosLosDatos = [...todosLosDatos, ...conFecha];
-          desde += PAGE_SIZE;
+          todosLosDatos = [...todosLosDatos, ...data];
+          offset += PAGE_SIZE;
           if (data.length < PAGE_SIZE) hayMas = false;
         } else {
           hayMas = false;
@@ -192,44 +182,36 @@ export default function Dashboard() {
         .limit(1000);
 
       // Lineas
-      let lineasRows = [];
-      const PAGE_SIZE = 1000;
-      let desde = 0;
-      let hayMas = true;
-      while (hayMas) {
-        const { data } = await api
-          .from(TABLA_CLIENTES)
-          .select("created_at, atributos_dinamicos")
-          .order("created_at", { ascending: false })
-          .range(desde, desde + PAGE_SIZE - 1);
-        if (data && data.length > 0) {
-          lineasRows = [...lineasRows, ...data];
-          desde += PAGE_SIZE;
-          if (data.length < PAGE_SIZE) hayMas = false;
-        } else hayMas = false;
-      }
-
+      // Solo últimos 7 días — una query por día con filtro server-side
       const last7 = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const dateStr = localDateStr(d);
+        const nextStr = localDateStr(new Date(d.getTime() + 86400000));
         const label = d.toLocaleDateString("es", { weekday: "short", day: "numeric" });
 
         const subidos = (docs || [])
           .filter((doc) => utcToLocalDate(doc.created_at) === dateStr)
           .reduce((sum, doc) => sum + (doc.total_dnis || 0), 0);
         
-        const delDia = lineasRows.filter((c) => utcToLocalDate(c.created_at) === dateStr);
-        const lineas = delDia.filter((c) => {
+        const delDiaResp = await api
+          .from(TABLA_CLIENTES)
+          .select("atributos_dinamicos")
+          .gte('ad_fecha_procesado', dateStr)
+          .lt('ad_fecha_procesado', nextStr)
+          .limit(50000);
+        const lineasRows = delDiaResp?.data || [];
+        
+        const lineas = lineasRows.filter((c) => {
           const a = c.atributos_dinamicos || {};
           return a.estado === "completado";
         }).length;
-        const noCliente = delDia.filter((c) => {
+        const noCliente = lineasRows.filter((c) => {
           const a = c.atributos_dinamicos || {};
           return a.estado === "no_cliente";
         }).length;
-        const errores = delDia.filter((c) => {
+        const errores = lineasRows.filter((c) => {
           const a = c.atributos_dinamicos || {};
           return a.estado === "error";
         }).length;
