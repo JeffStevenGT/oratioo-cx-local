@@ -57,7 +57,7 @@ export default function Clientes() {
     setLoading(true)
     try {
       let allData = []
-      const PAGE = 100
+      const PAGE = 200
       let offset = 0
       let hasMore = true
 
