@@ -47,9 +47,12 @@ export async function query(table, options = {}) {
 
   let url = `${POSTGREST_URL}/${table}?select=${encodeURIComponent(select)}`
 
-  // Filtros como query params
+  // Filtros como query params (solo encodeamos el valor, no el =)
   for (const f of filters) {
-    url += `&${encodeURIComponent(f)}`
+    const eqIdx = f.indexOf('=')
+    const key = f.substring(0, eqIdx)
+    const val = f.substring(eqIdx + 1)
+    url += `&${encodeURIComponent(key)}=${encodeURIComponent(val)}`
   }
 
   if (order) url += `&order=${encodeURIComponent(order)}`
