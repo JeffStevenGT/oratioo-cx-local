@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ─────────────────────────────── */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ── Cards ────────────────────────────── */
+.card {
+  @apply bg-white border border-[#e8dce6] rounded-xl shadow-sm;
+}
+
+/* ── Table ────────────────────────────── */
+.table-header {
+  @apply text-left px-3 py-2 text-[10px] text-[#7c757c] uppercase tracking-wider font-semibold;
+}
+
+.table-cell {
+  @apply px-3 py-2 text-xs text-[#1a1030];
+}
+
+/* ── Buttons ──────────────────────────── */
+.btn-primary {
+  @apply bg-[#0a6ea9] hover:bg-[#085d8f] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+}
+
+.btn-secondary {
+  @apply border border-[#e8dce6] bg-white hover:bg-[#f5f5fa] text-[#1a1030] px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2;
+}
+
+/* ── Animation ────────────────────────── */
+.animate-slide-in {
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Scrollbar ────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4c8d4;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b8b0b8;
+}

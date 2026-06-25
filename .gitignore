@@ -1,25 +1,21 @@
-# Dependencies
+# Dependencias
 node_modules/
-__pycache__/
-*.pyc
+bot/venv/
+bot/__pycache__/
 
-# Environment
+# Build output
+web/dist/
+.next/
+
+# Entorno
 .env
 .env.local
-.env.*.local
 
-# Bot files
-proxies.txt
-numeros.txt
-
-# Build
-dist/
-.vite/
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-Thumbs.db
+# Sistema
 .DS_Store
+Thumbs.db
+*.log
+bot/logs/
+
+# Resultados
+bot/resultados_local.json
