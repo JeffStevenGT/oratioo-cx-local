@@ -107,14 +107,13 @@ export default function Clientes() {
       const ad = c.atributos_dinamicos || {}
       const attr = typeof ad === 'string' ? JSON.parse(ad) : ad
       const isError = attr.estado === 'error'
-      if (attr.estado !== 'completado' && attr.estado !== 'no_cliente' && !isError) continue
       const dni = c.dni
-      const displayName = c.nombre && c.nombre !== 'N/A' ? c.nombre : (isError ? 'ERROR' : (attr.datos_basicos?.nombre || 'N/A'))
+      const displayName = c.nombre && c.nombre !== 'N/A' ? c.nombre : (isError ? 'ERROR' : (attr.datos_basicos?.nombre || 'PENDIENTE'))
       if (!grupos[dni]) {
         grupos[dni] = {
           dni, nombre: displayName, isError, created_at: c.created_at,
           fecha_analisis: attr.fecha_procesado || c.created_at,
-          _lineas: [], _cima: false, _renove_mixto: false, _variantes: new Set(), _isError: isError,
+          _lineas: [], _cima: false, _renove_mixto: false, _variantes: new Set(), _isError: isError, _isPending: attr.estado === 'pendiente',
         }
       }
       const g = grupos[dni]
@@ -176,8 +175,7 @@ export default function Clientes() {
         if (mejorVariante === 'N/A') mejorVariante = variantesArr[0]
       }
       g.atributos_dinamicos.renove_mixto_variante = mejorVariante
-      g.atributos_dinamicos.estado = 'completado'
-      if (g._isError) g.atributos_dinamicos.estado = 'error'
+      g.atributos_dinamicos.estado = g._isError ? 'error' : (g._isPending ? 'pendiente' : 'completado')
       if (!g.atributos_dinamicos.datos_basicos?.nombre && g.nombre) {
         g.atributos_dinamicos.datos_basicos = g.atributos_dinamicos.datos_basicos || {}
         g.atributos_dinamicos.datos_basicos.nombre = g.nombre
