@@ -27,6 +27,10 @@ const VALID_IDENT = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 const OP_MAP = { eq: '=', neq: '!=', gt: '>', gte: '>=', lt: '<', lte: '<=', like: 'LIKE', ilike: 'ILIKE' }
 
 function safeIdent(col) {
+  // Alias ad_* = atributos_dinamicos->>* (evita problemas de encoding en URL)
+  if (col.startsWith('ad_')) {
+    return `atributos_dinamicos->>'${col.substring(3)}'`
+  }
   // Si es una expresión JSON (contiene -> o ->>), no la quotear
   if (col.includes('->')) {
     return col.replace(/[^a-zA-Z0-9_>'-]/g, '')

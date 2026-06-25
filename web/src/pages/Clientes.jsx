@@ -68,9 +68,9 @@ export default function Clientes() {
           .order('id', { ascending: true })
           .limit(PAGE)
 
-        // Filtros de fecha server-side (la API ya soporta JSONB)
-        if (appliedFrom) query.gte('atributos_dinamicos->>fecha_procesado', appliedFrom)
-        if (appliedTo) query.lte('atributos_dinamicos->>fecha_procesado', appliedTo)
+        // Filtros de fecha server-side (usamos alias "ad_" para evitar encoding de ->> en URL)
+        if (appliedFrom) query.gte('ad_fecha_procesado', appliedFrom)
+        if (appliedTo) query.lte('ad_fecha_procesado', appliedTo)
 
         const { data } = await query.offset(offset)
 
