@@ -184,20 +184,29 @@ app.get('/:table', async (req, res) => {
   try {
     const { sql, countSql, params } = buildQuery(req)
     const result = await pool.query(sql, params)
+    const count = result.rows.length
+
+    // Single object?
+    if (req.headers.accept?.includes('vnd.pgrst.object+json')) {
+      const obj = result.rows[0] || null
+      const json = JSON.stringify(obj)
+      res.setHeader('Content-Type', 'application/json; charset=utf-8')
+      res.setHeader('Content-Length', Buffer.byteLength(json))
+      return res.send(json)
+    }
+
+    const json = JSON.stringify(result.rows)
+    res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    res.setHeader('Content-Length', Buffer.byteLength(json))
 
     // Count if requested
     if (req.headers.prefer?.includes('count=exact')) {
       const countResult = await pool.query(countSql, params)
-      const count = parseInt(countResult.rows[0].count)
-      res.setHeader('Content-Range', `0-${result.rows.length - 1}/${count}`)
+      const total = parseInt(countResult.rows[0].count)
+      res.setHeader('Content-Range', `0-${count - 1}/${total}`)
     }
 
-    // Single object?
-    if (req.headers.accept?.includes('vnd.pgrst.object+json')) {
-      return res.json(result.rows[0] || null)
-    }
-
-    res.json(result.rows)
+    res.send(json)
   } catch (err) {
     console.error('GET error:', err.message)
     res.status(400).json({ message: err.message })
