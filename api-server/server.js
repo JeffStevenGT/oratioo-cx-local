@@ -181,6 +181,7 @@ function buildUpdateFilter(req) {
 app.get('/:table', async (req, res) => {
   try {
     const { sql, countSql, params } = buildQuery(req)
+    if (req.query.ad_fecha_procesado) console.log('SQL:', sql, '| PARAMS:', params)
     const result = await pool.query(sql, params)
 
     // Count if requested
