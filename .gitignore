@@ -19,3 +19,6 @@ bot/logs/
 
 # Resultados
 bot/resultados_local.json
+
+# CSVs de Supabase (se copian aparte — son muy pesados)
+*.csv
