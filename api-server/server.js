@@ -35,14 +35,15 @@ function safeIdent(col) {
 function parseFilterValue(raw) {
   // "eq.value" → { op: "=", value: "value" }
   // "in.(a,b,c)" → { op: "IN", value: ["a","b","c"] }
-  const dot = raw.indexOf('.')
-  if (dot === -1) return { op: '=', value: raw }
+  // Decodificar URL encoding que viene del frontend
+  const decoded = decodeURIComponent(raw)
+  const dot = decoded.indexOf('.')
+  if (dot === -1) return { op: '=', value: decoded }
 
-  const opName = raw.substring(0, dot)
-  let value = raw.substring(dot + 1)
+  const opName = decoded.substring(0, dot)
+  let value = decoded.substring(dot + 1)
 
   if (opName === 'in') {
-    // in.(val1,val2,val3)
     const inner = value.replace(/^\(/, '').replace(/\)$/, '')
     return { op: 'IN', value: inner.split(',').map(v => v.trim()) }
   }
@@ -51,7 +52,7 @@ function parseFilterValue(raw) {
     return { op: OP_MAP[opName], value }
   }
 
-  return { op: '=', value: raw }
+  return { op: '=', value: decoded }
 }
 
 function buildQuery(req) {
