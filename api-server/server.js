@@ -72,7 +72,7 @@ function buildQuery(req) {
 
     // Handle "or" special syntax: or=(col1.eq.val1,col2.eq.val2)
     if (col === 'or') {
-      const inner = raw.replace(/^\(/, '').replace(/\)$/, '')
+      const inner = (Array.isArray(raw) ? raw[0] : raw).replace(/^\(/, '').replace(/\)$/, '')
       const orParts = inner.split(',').map(p => p.trim())
       const orClauses = []
       for (const part of orParts) {
@@ -86,14 +86,18 @@ function buildQuery(req) {
       continue
     }
 
-    const { op, value } = parseFilterValue(raw)
+    // Handle array values (same param appears multiple times, e.g. gte + lte)
+    const values = Array.isArray(raw) ? raw : [raw]
+    for (const val of values) {
+      const { op, value } = parseFilterValue(val)
 
-    if (op === 'IN') {
-      const placeholders = value.map(v => { params.push(v); return `$${paramIdx++}` }).join(', ')
-      whereParts.push(`${safeIdent(col)} IN (${placeholders})`)
-    } else {
-      params.push(value)
-      whereParts.push(`${safeIdent(col)} ${op} $${paramIdx++}`)
+      if (op === 'IN') {
+        const placeholders = value.map(v => { params.push(v); return `$${paramIdx++}` }).join(', ')
+        whereParts.push(`${safeIdent(col)} IN (${placeholders})`)
+      } else {
+        params.push(value)
+        whereParts.push(`${safeIdent(col)} ${op} $${paramIdx++}`)
+      }
     }
   }
 
