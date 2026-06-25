@@ -27,8 +27,12 @@ const VALID_IDENT = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 const OP_MAP = { eq: '=', neq: '!=', gt: '>', gte: '>=', lt: '<', lte: '<=', like: 'LIKE', ilike: 'ILIKE' }
 
 function safeIdent(col) {
-  // Handle JSON path: atributos_dinamicos->>'estado'
-  const cleaned = col.replace(/[^a-zA-Z0-9_>'-]/g, '')
+  // Si es una expresión JSON (contiene -> o ->>), no la quotear
+  if (col.includes('->')) {
+    return col.replace(/[^a-zA-Z0-9_>'-]/g, '')
+  }
+  // Columna normal: quotear con double quotes
+  const cleaned = col.replace(/[^a-zA-Z0-9_]/g, '')
   return `"${cleaned}"`
 }
 
@@ -99,8 +103,7 @@ function buildQuery(req) {
     const parts = req.query.order.split('.')
     const col = parts[0]
     const dir = (parts[1] || 'asc').toUpperCase()
-    // Allow JSON paths in order
-    orderClause = ` ORDER BY ${safeIdent(col)} ${dir === 'DESC' ? 'DESC' : 'ASC'}`
+    orderClause = ` ORDER BY ${safeIdent(col)} ${dir === 'DESC' ? 'DESC' : 'ASC'} NULLS LAST`
   }
 
   // Limit / Offset
@@ -114,12 +117,12 @@ function buildQuery(req) {
 
   const whereClause = whereParts.length > 0 ? ' WHERE ' + whereParts.join(' AND ') : ''
 
-  // Handle select with JSON paths
+  // Handle select with JSON paths (no quotear expresiones con ->)
   let selectClause = select
   if (select !== '*') {
     selectClause = select.split(',')
       .map(c => c.trim())
-      .map(c => VALID_IDENT.test(c) ? `"${c}"` : c)
+      .map(c => c.includes('->') ? c : (VALID_IDENT.test(c) ? `"${c}"` : c))
       .join(', ')
   }
 
